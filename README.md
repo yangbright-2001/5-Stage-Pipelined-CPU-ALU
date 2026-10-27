@@ -1,16 +1,15 @@
 # 5-Stage Pipelined MIPS CPU and ALU
 
-Course project for **CSC3050: Computer Architecture** at **The Chinese University of Hong Kong, Shenzhen**.
+Course project for **CSC3050: Computer Architecture, Spring 2022** at **The Chinese University of Hong Kong, Shenzhen**.
 
-The assignment has two parts. The first is a standalone ALU that executes one MIPS instruction from two register values and reports status flags. The second is a classic five-stage pipeline CPU that uses that ALU in the execute stage and handles data and control hazards. The full assignment statement is in [`requirements.pdf`](requirements.pdf). Design notes and the reported test status are in [`report/Report for CSC3050 Project 3.docx`](report/Report%20for%20CSC3050%20Project%203.docx).
+The assignment has two parts. The first is a standalone ALU that executes one MIPS instruction from two register values and reports status flags. The second is a classic five-stage pipeline CPU that uses that ALU in the execute stage and handles data and control hazards. The figures in [section 2](#2-what-the-project-does) show those two blocks and the hazard logic added on top. The full assignment statement is in [`docs/project requirements.pdf`](docs/project%20requirements.pdf). Design notes and the reported test status are in [`docs/Report for CSC3050 Project 3.pdf`](docs/Report%20for%20CSC3050%20Project%203.pdf).
 
 Simulation uses [Icarus Verilog](https://steveicarus.github.io/iverilog/) (`iverilog` and `vvp`).
 
 ## 1. Repository layout
 
 ```
-requirements.pdf          Assignment specification
-report/                   Project report
+docs/                     Assignment, project report, and datapath figures
 src/alu/                  Standalone ALU and its testbench
 src/cpu/                  Pipelined CPU
 testcase/alu_test/        Place for extra ALU test data
@@ -22,6 +21,10 @@ testcase/cpu_test/        MIPS programs, machine code, and expected data-memory 
 ## 2. What the project does
 
 ### 2.1 Standalone ALU
+
+![Standalone ALU. One MIPS instruction selects the operation and the two source registers. The ALU returns a result and status flags.](docs/ALU.jpg)
+
+One instruction and two register values enter the ALU. It returns a 32-bit result and three flags: zero, negative, and overflow.
 
 `src/alu/alu.v` is the first deliverable. It is not yet connected to a register file or a pipeline.
 
@@ -37,6 +40,10 @@ Only those two register addresses appear in the `rs` and `rt` fields. The module
 
 ### 2.2 Five-stage pipeline
 
+![Five-stage MIPS pipeline. An instruction moves from instruction memory through the register file, the ALU, and data memory, and the result is written back. Control signals travel with the instruction.](docs/5-staged-CPU.jpg)
+
+Each instruction passes through fetch, decode, execute, memory, and write-back. The ALU from the first part sits in the execute stage, and the control signals for an instruction move forward with it. In this drawing a branch is still decided in the memory stage. The CPU in this repository decides it in decode, as the next figure shows.
+
 `src/cpu/cpu.v` is a MIPS pipeline. Pipeline registers between the stages are in `src/cpu/pipeline_registers.v`.
 
 1. **IF** fetches the instruction addressed by the PC from instruction memory, then selects the next PC: `PC+4`, a branch target, a jump target, or the register value used by `jr`.
@@ -46,6 +53,10 @@ Only those two register addresses appear in the `rs` and `rt` fields. The module
 5. **WB** writes the ALU result or the loaded memory word back to the register file.
 
 ### 2.3 Hazards
+
+![Five-stage pipeline with a hazard unit. Branch comparison happens in decode, forwarding paths feed newer results into the ALU, and the hazard unit can stall or flush the pipeline.](docs/cpu-with-hazards.jpg)
+
+The hazard unit along the bottom is what this CPU adds to the pipeline above. It forwards a result that is still in the pipeline, inserts a one-cycle stall when the next instruction needs a value just loaded from memory, and resolves a branch in decode so the instruction fetched behind it can be discarded.
 
 The CPU includes the three hazard mechanisms described in the report. The report states that test cases 1, 2, and 4 pass. The later hazard cases are implemented, and the report notes that some of them may still be incorrect.
 
